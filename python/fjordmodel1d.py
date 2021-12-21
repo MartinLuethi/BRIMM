@@ -19,8 +19,8 @@ class FjordModel(object):
     def __init__(self, nslots):
         self.nslots = nslots
         self.blocks  = np.zeros(nslots, float)
-        self.blength = 10
-        self.dxrand  = 20
+        self.blength = 50
+        self.dxrand  = 50
         self.dxcalv  = 10
         self.bias    = 0.3
         self.actblocks = 0
@@ -53,7 +53,7 @@ m.spread_blocks()
 
 allpos = np.zeros((nslots, nsteps), float) #+ np.nan
 
-calving = []
+calving = [0]
 # move
 for step in range(nsteps):
     dxs = (np.random.random(m.actblocks) - m.bias) * m.dxrand
@@ -78,14 +78,20 @@ for step in range(nsteps):
     allpos[-m.actblocks:,step] = m.blocks[:m.actblocks]
 
 
+# evaluate the results
+tt = np.arange(nsteps)    # times for all timesteps
 front = (np.diff(allpos,axis=0) > m.blength).argmax(axis=0) * m.blength
 
-tt = np.arange(nsteps)
 for xs in allpos:
     # plt.plot(xs, tt, 'k.-', lw=0.5)
     plt.plot(xs, tt, 'ks', ms=1)
-
 plt.plot(front, tt, 'red')
+
+for c0, c1 in zip(calving[3:-1], calving[4:]):
+    t = tt[c0:c1]
+    f = front[c0:c1] * m.blength
+    plt.plot(f, (t-t[0]), '.-')
+
 
 stop
 
