@@ -182,7 +182,7 @@ outdir = '../modelruns'
 os.makedirs(outdir, exist_ok=True)
 
 nblocks = 20
-nsteps  = 5000
+nsteps  = 50000
 nslots  = 200
 blength = 50
 flength = 20000     # length of the fjord
