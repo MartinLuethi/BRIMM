@@ -49,7 +49,7 @@ class FjordModel(object):
         # self.actblocks = min(self.actblocks, self.nslots)
 
 
-    def evolution_uncoupled(self, nsteps, nblocks, dxrand=None, bias=None):
+    def evolution_uncoupled(self, nsteps, nblocks, dxrand=None, bias=None, slowzone=None):
         """
         rule
         move a block until it touches the next one
@@ -71,6 +71,9 @@ class FjordModel(object):
             self.blocks[-1] += 1000
             self.blocks[self.blocks > flength] += 1000                      # let the last blocks swim away
             dxs = (np.random.random(self.nslots) - 0.5 + self.bias) * self.dxrand    # moving distance
+            if slowzone:
+                idx = (slowzone[0] <= self.blocks) & (self.blocks <= slowzone[1])
+                dxs[idx] *= 0.5
             for i, dx in enumerate(dxs[:-1]):
                 if (dx > 0):
                     db = self.blocks[i+1] - self.blength - self.blocks[i]
@@ -182,22 +185,25 @@ outdir = '../modelruns'
 os.makedirs(outdir, exist_ok=True)
 
 nblocks = 20
-nsteps  = 50000
-nslots  = 200
+nsteps  = 20000
+nslots  = 300
 blength = 50
 flength = 20000     # length of the fjord
 dxcalv  = 5
 dxrand = 100
 bias   = 0.35
 
-for bias in np.arange(0, 0.41, 0.05):
-    for dxrand in [10, 20, 50, 100]:
+# for bias in np.arange(0, 0.41, 0.05):
+#     for dxrand in [10, 20, 50, 100]:
+for bias in [0.1]:
+    for dxrand in [100]:
 
         param=dict(nblocks=nblocks, nsteps=nsteps, nslots=nslots, dxcalv=dxcalv,
                    blength=blength, flength=flength, dxrand=dxrand, bias=bias)
 
         m = FjordModel(nslots, param=param)
-        m.evolution_uncoupled(nsteps, nblocks, dxrand=dxrand, bias=bias)
+        m.evolution_uncoupled(nsteps, nblocks, dxrand=dxrand, bias=bias, slowzone=[10000, 11000])
+        # m.evolution_uncoupled(nsteps, nblocks, dxrand=dxrand, bias=bias)
 
         tt    = np.arange(nsteps)    # times for all timesteps
         front = (np.diff(m.allpos,axis=0) > 1.01*m.blength).argmax(axis=0) * m.blength
@@ -208,11 +214,13 @@ for bias in np.arange(0, 0.41, 0.05):
             coords= dict(time=tt, slots=np.arange(nslots)), 
             attrs = param)
 
-        outfilename = outdir + '/fjordmodel1d_{nslots:.0f}_{blength:.0f}_{nblocks:.0f}_{dxcalv:.0f}_{dxrand:.0f}_{bias:.2f}.nc'.format(**param)
+        outfilename = outdir + '/fjordmodel1d_slowzone_{nslots:.0f}_{blength:.0f}_{nblocks:.0f}_{dxcalv:.0f}_{dxrand:.0f}_{bias:.2f}.nc'.format(**param)
 
         ds.to_netcdf(outfilename)
 
-
+# fig, ax = plt.subplots()
+# ax.eventplot(m.allpos.T[4000:], colors='k', lineoffsets=1,
+#                     linewidths=1, linelengths=1)
 
 # m.blocks = 5 * blength * np.arange(nslots) + np.random.random(m.nslots)*blength 
 # m.spread_blocks()
