@@ -8,7 +8,7 @@ import pylab as plt
 import xarray
 import glob
 
-filenames = sorted(glob.glob('../modelruns/*30_0.05.nc'))
+filenames = sorted(glob.glob('../modelruns/*_0.05.nc')) 
 
 
 c_mean, c_max = [], []
@@ -29,29 +29,51 @@ for filename in filenames:
     c_max.append(np.diff(calving).max())
     dxrands.append(param['dxrand'])
 
-    # for i in range(len(calving)-1):
-    for i in range(-9,-1):
-        i0, i1 = calving[i], calving[i+1]
-        dfront = front[i0:i1]-front[i1]
-        plt.plot(dfront - dfront[-1], time[i0:i1]-time[i0])
-        plt.xlabel('distance from front (m)')
-        plt.ylabel('Time (some units)')
-    stop
+    if 1:
+        fig, ax = plt.subplots()
+        # box = [[slowzone_start, slowzone_end, slowzone_end, slowzone_start],
+        #        [0, 0, 1000, 1000]]
+        # ax.fill(box[0], box[1], 'm', alpha=0.3)
+        ax.eventplot(ds.blocks.T[-5000::10], colors='k', lineoffsets=1,
+                            linewidths=1.5, linelengths=1)
+        ax.set_xlim(0, flength)
+        stop
+
+    if 0:
+        # for i in range(len(calving)-1):
+        for i in range(-9,-1):
+            i0, i1 = calving[i], calving[i+1]
+            dfront = front[i0:i1]-front[i1]
+            plt.plot(dfront - dfront[-1], time[i0:i1]-time[i0])
+            plt.xlabel('distance from front (m)')
+            plt.ylabel('Time (some units)')
+        stop
 
 c_mean = np.array(c_mean)
 dxrands = np.array(dxrands)
 idx = dxrands.argsort()
 
-# plt.plot(param['dxrand'], dfront[calvidx].mean(), 'o')
-plt.plot(dxrands[idx], c_mean[idx], '-o')
-# plt.plot(param['dxrand'], c_max, 's')
+if 1:
+    
+    # plt.plot(param['dxrand'], dfront[calvidx].mean(), 'o')
+    plt.plot(dxrands[idx], c_mean[idx], '-o')
+    #plt.plot(param['dxrand'], c_max, 's')
 
-plt.xlabel('dxrand')
-plt.ylabel('c_mean')
+    plt.xlabel('dxrand')
+    plt.ylabel('c_mean')
 
-# plt.plot(np.diff(calving))
+if 0:
+    plt.plot(np.diff(calving))
 
-# plt.plot(front)
-# plt.plot(calving, np.zeros_like(calving), 'ro')
+    # plt.plot(front)
+    # plt.plot(calving, np.zeros_like(calving), 'ro')
 
+if 0:
+    fig, ax = plt.subplots()
+    # box = [[slowzone_start, slowzone_end, slowzone_end, slowzone_start],
+    #        [0, 0, 1000, 1000]]
+    # ax.fill(box[0], box[1], 'm', alpha=0.3)
+    ax.eventplot(m.allpos.T[-1000:], colors='k', lineoffsets=1,
+                        linewidths=1.5, linelengths=1)
+    ax.set_xlim(0, flength)
 

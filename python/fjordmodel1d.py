@@ -49,15 +49,18 @@ class FjordModel(object):
         # self.actblocks = min(self.actblocks, self.nslots)
 
 
-    def evolution_uncoupled(self, nsteps, nblocks, dxrand=None, bias=None, slowzone=None):
+    def evolution_uncoupled(self, nsteps, nblocks, dxrand=None, 
+                            bias=None, slowzone=None, ):
         """
         rule
         move a block until it touches the next one
         blocks are never overlapping
+
+        bias is an array and pre-defined for every timestep
         """
-        if dxrand:
+        if not (dxrand is None):
             self.dxrand = dxrand
-        if bias:
+        if not (bias is None):
             self.bias = bias
     
         self.add_blocks(nblocks)
@@ -69,8 +72,8 @@ class FjordModel(object):
         for step in range(nsteps):
             self.blocks[0] = max(self.blocks[0], 0)                         # fix the first block
             self.blocks[-1] += 1000
-            self.blocks[self.blocks > flength] += 1000                      # let the last blocks swim away
-            dxs = (np.random.random(self.nslots) - 0.5 + self.bias) * self.dxrand    # moving distance
+            self.blocks[self.blocks > flength] = flength+5000                      # let the last blocks swim away
+            dxs = (np.random.random(self.nslots) - 0.5 + self.bias[step]) * self.dxrand[step]    # moving distance
             if slowzone:
                 idx = (slowzone[0] <= self.blocks) & (self.blocks <= slowzone[1])
                 dxs[idx] *= 0.5
@@ -108,7 +111,7 @@ class FjordModel(object):
 
         # move
         for step in range(nsteps):
-            vs = (np.random.random(self.nslots) - 0.5 + self.bias) * self.dxrand
+            vs = (np.random.random(self.nslots) - 0.5 + self.bias[step]) * self.dxrand
             self.blocks += vs
             self.spread_blocks()
             stop
@@ -190,19 +193,35 @@ nslots  = 300
 blength = 50
 flength = 20000     # length of the fjord
 dxcalv  = 5
-dxrand = 100
-bias   = 0.35
+dxrand0 = 50
+bias0  = 0.1
+slowzone_start = 10000
+slowzone_end   = 11000
+
+dt0 = 0.1
+omega = 2*np.pi / 365.
+
+tt = np.arange(nsteps)*dt0
 
 # for bias in np.arange(0, 0.41, 0.05):
 #     for dxrand in [10, 20, 50, 100]:
-for bias in [0.1]:
-    for dxrand in [100]:
+for bias0 in [0.1]:
+    for dxrand0 in [100]:
 
         param=dict(nblocks=nblocks, nsteps=nsteps, nslots=nslots, dxcalv=dxcalv,
-                   blength=blength, flength=flength, dxrand=dxrand, bias=bias)
+                   blength=blength, flength=flength, # dxrand=dxrand, bias=bias, 
+                   slowzone_start=slowzone_start, slowzone_end=slowzone_end)
+
+        bias   = np.zeros(nsteps) + bias0 
+        # sine
+        dxrand = np.zeros(nsteps) + dxrand0 * 0.5*(1 + np.sin(omega*tt))
+        # square
+        dxrand = np.zeros(nsteps)+0.2*dxrand0
+        for i in range(10):
+            dxrand[(2*i)*1000:(2*i+1)*1000] = 1*dxrand0
 
         m = FjordModel(nslots, param=param)
-        m.evolution_uncoupled(nsteps, nblocks, dxrand=dxrand, bias=bias, slowzone=[10000, 11000])
+        m.evolution_uncoupled(nsteps, nblocks, dxrand=dxrand, bias=bias, slowzone=[slowzone_start, slowzone_end])
         # m.evolution_uncoupled(nsteps, nblocks, dxrand=dxrand, bias=bias)
 
         tt    = np.arange(nsteps)    # times for all timesteps
@@ -218,13 +237,18 @@ for bias in [0.1]:
 
         ds.to_netcdf(outfilename)
 
-# fig, ax = plt.subplots()
-# ax.eventplot(m.allpos.T[4000:], colors='k', lineoffsets=1,
-#                     linewidths=1, linelengths=1)
+fig, ax = plt.subplots()
+box = [[slowzone_start, slowzone_end, slowzone_end, slowzone_start],
+       [0, 0, 1000, 1000]]
+ax.fill(box[0], box[1], 'm', alpha=0.3)
+ax.eventplot(m.allpos.T[::10], colors='k', lineoffsets=1,
+                    linewidths=1.5, linelengths=1)
+ax.set_xlim(0, flength)
+
+stop
 
 # m.blocks = 5 * blength * np.arange(nslots) + np.random.random(m.nslots)*blength 
 # m.spread_blocks()
-
 
 #m.evolution_uncoupled(nsteps, nblocks)
 
