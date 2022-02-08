@@ -10,7 +10,6 @@ import glob
 
 filenames = sorted(glob.glob('../modelruns/*_0.05.nc')) 
 
-
 c_mean, c_max = [], []
 dxrands = []
 for filename in filenames:
