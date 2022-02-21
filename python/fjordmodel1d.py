@@ -1,18 +1,18 @@
+# 
+# BRIMM    Biased Random-Walk Ice Melange Model
+#
 # a stupid straight-forward fjord model
 #
 # replace the blocks in fjordmodel.py with an array
 # for 1d this works
-
+#
 # profiling with
 # python -m cProfile -o prof.log fjordmodel1d.py
-
-# blocks[0] is the calving front (not anymore)
 
 
 import numpy as np
 import pylab as plt
 from matplotlib import animation
-
 
 class Plug(object):
     """ a container holding plug information """
@@ -27,6 +27,26 @@ class Plug(object):
         self.plugged = np.zeros(nsteps)
 
 class FjordModel(object):
+    """The BRIMM Model
+    |xblocks|   is the main data structure holding the x-positions of the blocks
+    |nslots|    is the maximum number of blocks available
+    |xfront|    position of the calving front
+    |vfront|    velocity of the calving front
+
+    |blength|   the length (in flow direction) of each block
+    |gblength|  the length of the block before calving 
+    |dxcalv|    distance between front and first block needed to trigger a calving event
+    |dxrand|    maximum random block motion at each time step
+    |bias|      how much skewed the random walk is
+
+    The random motion at each time step is
+    
+    dx = dxrand * (rand(1) - 0.5 + bias) 
+    
+    bias = 0    means left/right motion with the same likelyhood, 
+    bias = 0.5  means only motion to the right
+
+    """
 
     def __init__(self, nslots, param):
         self.nslots  = nslots
@@ -41,13 +61,15 @@ class FjordModel(object):
         self.plugs = [Plug(pos, nsteps) for pos in param['plugzones']]
 
         # initialize blocks
-        # np.nan means: no block present
-        self.xblocks  = np.zeros(nslots, float) + 1e6 #+ np.nan   
+        # blocks not in the domain are set to a high coordinate (+1e6)
+        # this has the advantage over np.nan, that we have no special case to deal with
+        # (x+np.nan would leak into the domain, so one would have to determine valid blocks at every step )
+        self.xblocks = np.zeros(nslots, float) + 1e6 
         self.xfront  = 0.    # position of the calving front
 
     def spread_blocks(self):
         """
-        rule
+        Rule:
         starting from the calving front, move each block such that
         blocks are never overlapping
         """
@@ -60,9 +82,9 @@ class FjordModel(object):
 
     def spread_blocks_overlapping(self):
         """
-        rule
+        TODO: make a working implementation, this is not good yet
+        Rule
         starting from the calving front, move each block such that
-        blocks are never overlapping
         """
         if self.xblocks[0] < self.xfront:       # limit blocks to outside of calving front
             self.xblocks[0] = self.xfront                      
@@ -72,12 +94,12 @@ class FjordModel(object):
                 self.xblocks[i+1] = self.xblocks[i] + self.blength
 
     def calve_blocks(self, calvblocks):
-        self.xfront -= calvblocks*self.gblength                          # move calving front back
+        self.xfront -= calvblocks*self.gblength                             # move calving front back
         self.xblocks[calvblocks:] = self.xblocks[:-calvblocks]              # make room for newly calved blocks, discard the outermost ones
         self.xblocks[:calvblocks] = self.xfront + np.arange(calvblocks)*self.blength      # put the blocks packed
 
     def calve_blocks_stacked(self, calvblocks):
-        self.xfront -= calvblocks*self.gblength                          # move calving front back
+        self.xfront -= calvblocks*self.gblength                             # move calving front back
         self.xblocks[calvblocks:] = self.xblocks[:-calvblocks]              # make room for newly calved blocks, discard the outermost ones
         self.xblocks[:calvblocks] = self.xfront + np.abs(np.random.random(calvblocks)-0.5)*np.arange(calvblocks)*self.blength      # put the blocks packed
 
