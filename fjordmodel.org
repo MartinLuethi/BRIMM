@@ -1,0 +1,71 @@
+Fjordmodel / BRIMM
+
+Biased Random-Walk Model
+
+* Description for paper
+  [[file:~/projects/jako/coebeli/paper_adrien_ice_melange_weakening_JoG_publication/manuscript.tex::called BRIMM (biased random-walk ice mélange model) is based on][Fjordpaper Adrien]]
+
+
+To better understand the possible dynamics of dense ice mélange, we
+developed a simple numerical model, based on the idea that the
+floating ice blocks move like in a Brownian random walk. This model,
+called BRIMM (biased random-walk ice mélange model) is based on
+discrete particles representing floating ice blocks, that can move
+along the axis of the fjord. Blocks are created at the glacier
+terminus by calving, and float away when they reach the open
+ocean. The blocks move randomly, but cannot penetrate each other. We
+ignore cohesion and momentum transfer between blocks.
+
+At each model time step, all blocks move according to a random walk
+with normally distributed distance and random direction of motion. To
+achieve more realistic dynamics, a bias is added to the random
+distribution, making the blocks more likely to move away from the
+glacier. If another block is in its path, the moving block stops when
+hitting that neighboring block. The leftmost block, representing the
+advancing glacier calving front, moves at a constant speed.
+
+Calving events are triggered when the block closest to the calving
+front moves a certain distance away from the front. During each
+calving event the glacier terminus moves back by a certain distance. A
+prescribed number of new ice blocks is created and placed closely
+packed at the calving front, pushing away ice blocks that would
+otherwise overlap.
+
+The BRIMM model was implemented in the Python programming language and
+is publicly available under the GPL-v3 license.
+
+
+* Rules
+
+This model simulates the motion of floating ice blocks in the
+fjord. The model is 1D, and each block is characterized by its
+postition. 
+
+It relies on two assumptions:
+
+1. blocks cannot penetrate each other
+
+2. blocks move randomly
+
+for the calving front we have two more assumptions:
+
+3. if the block next to the calving front moves more than a certain
+   amount, a calving event occurs
+
+4. If a calving event occurs, a certain amount of blocks is released
+   to the fjord
+
+
+
+
+Extensions:
+
+- inhomogeneous block size
+
+- some kind of momentum transfer during collisions
+
+**** TODO [#B] implement glacier motion                             :WAITING:
+     SCHEDULED: <2022-02-07 Mon>
+   
+   [[file:~/projects/fjordmodel/python/analyze_fjordmodel.py::filenames = sorted(glob.glob('../modelruns/*_0.15.nc'))]]
+   Added: [2022-02-07 Mon 11:57]
