@@ -12,7 +12,9 @@
 
 import numpy as np
 import pylab as plt
-from matplotlib import animation
+import xarray
+import os
+
 
 class Plug(object):
     """ a container holding plug information """
@@ -27,38 +29,40 @@ class Plug(object):
         self.plugged = np.zeros(nsteps)
 
 class FjordModel(object):
-    """The BRIMM Model
-    |xblocks|   is the main data structure holding the x-positions of the blocks
-    |nslots|    is the maximum number of blocks available
-    |xfront|    position of the calving front
-    |vfront|    velocity of the calving front
-
-    |blength|   the length (in flow direction) of each block
-    |gblength|  the length of the block before calving 
-    |dxcalv|    distance between front and first block needed to trigger a calving event
-    |dxrand|    maximum random block motion at each time step
-    |bias|      how much skewed the random walk is
-
-    The random motion at each time step is
-    
-    dx = dxrand * (rand(1) - 0.5 + bias) 
-    
-    bias = 0    means left/right motion with the same likelyhood, 
-    bias = 0.5  means only motion to the right
-
-    """
 
     def __init__(self, nslots, param):
-        self.nslots  = nslots
-        self.param   = param
-        self.blength = param.get('blength', 100)
-        self.gblength = param.get('gblength', self.blength/2.)
-        self.dxrand  = param.get('dxrand', 100)
-        self.dxcalv  = param.get('dxcalv', 10)
-        self.bias    = param.get('bias', 0.)
-        self.vfront  = param.get('vfront', 0.)
+        """The BRIMM Model
 
-        self.plugs = [Plug(pos, nsteps) for pos in param['plugzones']]
+        |xblocks|   is the main data structure holding the x-positions of the blocks
+        |nslots|    is the maximum number of blocks available
+        |xfront|    position of the calving front
+        |vfront0|   velocity of the calving front
+
+        |flength|   the length of the fjord
+        |blength|   the length (in flow direction) of each block
+        |gblength|  the length of the block before calving 
+        |dxcalv|    distance between front and first block needed to trigger a calving event
+        |dxrand0|   maximum random block motion at each time step
+        |bias0|     how much skewed the random walk is
+
+        The random motion at each time step is
+
+        dx = dxrand * (rand(1) - 0.5 + bias) 
+
+        bias = 0    means left/right motion with the same likelyhood, 
+        bias = 0.5  means only motion to the right
+
+        """
+        self.nslots   = nslots
+        self.param    = param
+        self.blength  = param.get('blength', 100)
+        self.gblength = param.get('gblength', self.blength/2.)
+        self.dxrand0  = param.get('dxrand0', 100)
+        self.dxcalv   = param.get('dxcalv', 10)
+        self.bias0    = param.get('bias0', 0.)
+        self.vfront0  = param.get('vfront0', 0.)
+
+        self.plugs    = [Plug(pos, nsteps) for pos in param['plugzones']]
 
         # initialize blocks
         # blocks not in the domain are set to a high coordinate (+1e6)
@@ -99,6 +103,7 @@ class FjordModel(object):
         self.xblocks[:calvblocks] = self.xfront + np.arange(calvblocks)*self.blength      # put the blocks packed
 
     def calve_blocks_stacked(self, calvblocks):
+        # TODO: not working properly
         self.xfront -= calvblocks*self.gblength                             # move calving front back
         self.xblocks[calvblocks:] = self.xblocks[:-calvblocks]              # make room for newly calved blocks, discard the outermost ones
         self.xblocks[:calvblocks] = self.xfront + np.abs(np.random.random(calvblocks)-0.5)*np.arange(calvblocks)*self.blength      # put the blocks packed
@@ -116,14 +121,18 @@ class FjordModel(object):
 
     def evolution_uncoupled(self, nsteps, nblocks, dxrand=None, bias=None, param=dict()):
         """
-        rule
-        move a block until it touches the next one
-        blocks are never overlapping
+        Rule:
+        - move a block until it touches the next one
+        - blocks are never overlapping
 
-        self.xblocks[0] is at the terminus position of the glacier
+        self.xblocks[0] is closest to the terminus position of the glacier
 
-        bias is an array and pre-defined for every timestep
+        |nsteps|  number of time steps
+        |nblocks| number of blocks that are released at each calving event
+        |bias|    is an array, and pre-defined for every timestep
+        |dxrand|  is an array, and pre-defined for every timestep
         """
+
         if not (dxrand is None):
             self.dxrand = dxrand
         if not (bias is None):
@@ -149,7 +158,7 @@ class FjordModel(object):
             for plug in self.plugs:
                 idx = (plug.x0 <= self.xblocks) & (self.xblocks <= plug.x1) 
                 plug.bidx = idx
-                plug.bpos = m.xblocks[idx]
+                plug.bpos = self.xblocks[idx]
 
             # switch on the plugs
             for plug in self.plugs:
@@ -179,65 +188,74 @@ class FjordModel(object):
                 elif (dx < 0) and (i == 0):
                     self.xblocks[i] += -min(self.xblocks[i]-self.xfront, -dx)
 
-            # calving criterion: last block moves too far
+            # calving criterion: block at calving front moves more than dxcalv away from calving front
             if self.xblocks[0] > self.xfront + self.dxcalv:
-                # self.calve_blocks(nblocks)
-                self.calve_blocks_stacked(nblocks)
-                print(len(np.nonzero(self.xblocks < flength+500)[0]))
+                self.calve_blocks(nblocks)
+                # print(len(np.nonzero(self.xblocks < flength+500)[0]))     # how many blocks are actually needed in the model
                 for plug in self.plugs:
                     plug.newpossible = True
 
-            self.xfront += self.vfront * dt
+            idx = (self.xblocks - self.xfront < 5000)
+            if (np.diff(self.xblocks[idx]) > 2*self.blength).any():
+                self.calve_blocks(nblocks)
+                # print(len(np.nonzero(self.xblocks < flength+500)[0]))     # how many blocks are actually needed in the model
+                for plug in self.plugs:
+                    plug.newpossible = True
 
-            # do not spread, i.e. Blocks are stacked
+
+            # advance the glacier front
+            self.xfront += self.vfront0 * dt
+
+            # make sure blocks are not stock on top of each other
             self.spread_blocks()
 
             # switch off (and on) the plug
             # step 2: see how much the blocks in the plug area have moved
             for plug in self.plugs:
-                # plug.newpossible = (step - plug.lastactive > 50)
-                dplug = m.xblocks[plug.bidx] - plug.bpos
+                dplug = self.xblocks[plug.bidx] - plug.bpos
                 if plug.active:
-                    if (dplug.sum() > 0.9 * ( (plug.x1 - plug.x0)/blength * vfront*dt )):
+                    print(step, dplug.sum())
+                    if (dplug.sum() > 0.9 * ( (plug.x1 - plug.x0)/self.blength * self.vfront0*dt )):
                         plug.active = False
                         plug.lastactive = step
                         plug.newpossible = False
                 else:
                     if plug.newpossible:
-                        if (dplug.sum() < 0.2 * ( (plug.x1 - plug.x0)/blength * vfront*dt )):
+                        if (dplug.sum() < 0.2 * ( (plug.x1 - plug.x0)/self.blength * self.vfront0*dt )):
                             plug.active = True
-
                 
             self.allpos[:,step] = self.xblocks.copy()
             self.xfronts[step]  = self.xfront
 
 
-# main model run
+#============================================================
+# main model runs
+#============================================================
 
-import os
-import xarray
+from matplotlib import animation
 
-outdir = '../modelruns'
-os.makedirs(outdir, exist_ok=True)
-
-nblocks = 10
-nsteps  = 10000
-nslots  = 300
-blength = 50        # length of floating blocks
-gblength = 20       # length of glacier blocks
-flength = 20000     # length of the fjord
-dxcalv  = 20
-dxrand0 = 10
-bias0  = 0.0
+nblocks  = 20        # number of calved blocks
+nsteps   = 10000     # number of time steps
+blength  = 50        # length of floating blocks
+gblength = 20        # length of glacier blocks
+flength  = 20000     # length of the fjord
+nslots   = 300       # maximum number of icebergs that are tracked
+dxcalv   = 20
+dxrand0  = 10        # -> set in for loop below
+bias0    = 0.0       # -> set in for loop below
 slowzone = None #[7000, 8000]
 #plugzones = [[5000, 5500], [7000, 7500]]
 plugzones = [[5000, 5500]]
-vfront   = 5    # velocity of calving front in m/day
+vfront0   = 5        # velocity of calving front in m/day
 
 dt = 0.1       # day
 omega = 2*np.pi / 365.
 
 tt = np.arange(nsteps)*dt
+
+outdir = '../modelruns'
+os.makedirs(outdir, exist_ok=True)
+
 
 # for bias in np.arange(0, 0.41, 0.05):
 #     for dxrand in [10, 20, 50, 100]:
@@ -251,13 +269,13 @@ except:
                          gblength=gblength, flength=flength,
                          dxrand0=dxrand0, bias0=bias0, slowzone=slowzone,
                          plugzones=plugzones,
-                         dt=dt, vfront=vfront)
+                         dt=dt, vfront0=vfront0)
 
             bias   = np.zeros(nsteps) + bias0 
             dxrand = np.zeros(nsteps) + dxrand0
-            # sine
+            ## sine forcing
             # dxrand = np.zeros(nsteps) + dxrand0 * 0.5*(1 + np.sin(omega*tt))
-            # square
+            ## square forcing
             # dxrand = np.zeros(nsteps)+0.2*dxrand0
             # for i in range(10):
             #     dxrand[(2*i)*1000:(2*i+1)*1000] = 1*dxrand0
@@ -282,6 +300,7 @@ except:
 
             # ds.to_netcdf(outfilename)
 
+# iceberg animation 
 if 1:
     # First set up the figure, the axis, and the plot element we want to animate
     fig = plt.figure()
@@ -340,20 +359,21 @@ if 1:
     # anim.save('fjordmodel_plug.avi', fps=30)  #, extra_args=['-vcodec', 'libx264'])
 
     plt.show()
+    stop
 
-stop
 
-
+i0, i1 = -6000, -1
+ii = 10
 fig, ax = plt.subplots()
 # box = [[slowzone[0], slowzone[1], slowzone[1], slowzone[0]],
 #        [0, 0, 1000, 1000]]
 # ax.fill(box[0], box[1], 'm', alpha=0.3)
-ax.eventplot(m.allpos.T[-1000:], colors='k', lineoffsets=1,
-                    linewidths=1.5, linelengths=1)
-ax.set_xlim(-2000, 11000)
+# ax.eventplot(m.allpos[:100, i0:i1:ii].T, colors='k', lineoffsets=1,
+#                     linewidths=1.5, linelengths=1)
+# ax.set_xlim(0, 11000)
 
+# plt.plot(m.xfronts[i0:i1], tt[i0:i1]-tt[i0])
 
-stop
 
 # m.xblocks = 5 * blength * np.arange(nslots) + np.random.random(m.nslots)*blength 
 # m.spread_blocks()
@@ -362,10 +382,17 @@ stop
 
 # plot the results
 tt    = np.arange(nsteps)    # times for all timesteps
-front = (np.diff(m.allpos,axis=0) > 1.01*m.blength).argmax(axis=0) * m.blength
+#front = (np.diff(m.allpos,axis=0) > 1.01*m.blength).argmax(axis=0) * m.blength
 
-plt.plot(front, tt, )
-#plt.plot(front, tt, 'red')
+idx =  (np.diff(m.allpos,axis=0) > 1.01*m.blength).argmax(axis=0) 
+
+lead = []
+for i, ii in enumerate(idx):
+    lead.append(m.allpos[ii, i])
+lead = np.array(lead)
+
+plt.plot( lead - m.xfronts, tt,  'r')
+
 stop
 
 for t, xs in zip(tt, m.allpos.T):
