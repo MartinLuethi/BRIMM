@@ -143,7 +143,7 @@ class FjordModel(object):
 
         self.allpos  = np.zeros((self.nslots, nsteps), float) #+ np.nan
         self.xfronts = np.zeros(nsteps)
-        self.t_calving = [(0, 0)]
+        self.tcalv   = [(0., 0.)]
 
         for step in range(nsteps):
             self.xblocks[0] = max(self.xblocks[0], self.xfront)             # move the first block downstream of the calving front
@@ -190,13 +190,17 @@ class FjordModel(object):
 
             # calving criterion: block at calving front moves more than dxcalv away from calving front
             if self.xblocks[0] > self.xfront + self.dxcalv:
+                print('calv front')
+                self.tcalv.append((step, self.xfront))
                 self.calve_blocks(nblocks)
                 # print(len(np.nonzero(self.xblocks < flength+500)[0]))     # how many blocks are actually needed in the model
                 for plug in self.plugs:
                     plug.newpossible = True
 
             idx = (self.xblocks - self.xfront < 5000)
-            if (np.diff(self.xblocks[idx]) > 2*self.blength).any():
+            if (np.diff(self.xblocks[idx]) > 1.5*self.blength).any():
+                print('calv lead')
+                self.tcalv.append((step, self.xfront))
                 self.calve_blocks(nblocks)
                 # print(len(np.nonzero(self.xblocks < flength+500)[0]))     # how many blocks are actually needed in the model
                 for plug in self.plugs:
@@ -235,23 +239,24 @@ class FjordModel(object):
 from matplotlib import animation
 
 nblocks  = 20        # number of calved blocks
-nsteps   = 10000     # number of time steps
-blength  = 50        # length of floating blocks
-gblength = 20        # length of glacier blocks
+nsteps   = 20000     # number of time steps
+blength  = 100        # length of floating blocks
+gblength = 30        # length of glacier blocks
 flength  = 20000     # length of the fjord
 nslots   = 300       # maximum number of icebergs that are tracked
 dxcalv   = 20
-dxrand0  = 10        # -> set in for loop below
+dxrand0  = 20        # -> set in for loop below
 bias0    = 0.0       # -> set in for loop below
 slowzone = None #[7000, 8000]
 #plugzones = [[5000, 5500], [7000, 7500]]
 plugzones = [[5000, 5500]]
-vfront0   = 5        # velocity of calving front in m/day
+plugzones = []
+vfront0   = 10       # velocity of calving front in m/day
 
-dt = 0.1       # day
+dt = 0.05      # day
 omega = 2*np.pi / 365.
 
-tt = np.arange(nsteps)*dt
+tt = np.arange(nsteps)*dt    # times for all timesteps
 
 outdir = '../modelruns'
 os.makedirs(outdir, exist_ok=True)
@@ -263,7 +268,7 @@ try:
     m.allpos
 except:
     for bias0 in [0.05]:
-        for dxrand0 in [50]:
+        for dxrand0 in [40]:
             param = dict(nblocks=nblocks, nsteps=nsteps, nslots=nslots,
                          dxcalv=dxcalv, blength=blength,
                          gblength=gblength, flength=flength,
@@ -273,6 +278,7 @@ except:
 
             bias   = np.zeros(nsteps) + bias0 
             dxrand = np.zeros(nsteps) + dxrand0
+
             ## sine forcing
             # dxrand = np.zeros(nsteps) + dxrand0 * 0.5*(1 + np.sin(omega*tt))
             ## square forcing
@@ -286,7 +292,6 @@ except:
 
             m.evolution_uncoupled(nsteps, nblocks, bias=bias, dxrand=dxrand, param=param)
 
-            tt    = np.arange(nsteps)*dt    # times for all timesteps
             front = (np.diff(m.allpos,axis=0) > 1.01*m.blength).argmax(axis=0) * m.blength
 
             ds = xarray.Dataset(
@@ -301,7 +306,7 @@ except:
             # ds.to_netcdf(outfilename)
 
 # iceberg animation 
-if 1:
+if 0:
     # First set up the figure, the axis, and the plot element we want to animate
     fig = plt.figure()
     step0 = 0
@@ -353,7 +358,7 @@ if 1:
     # call the animator.  blit=True means only re-draw the parts that have changed.
     # anim = animation.FuncAnimation(fig, animate, init_func=init,
     #                                frames=int((nsteps-step0)/dstep), interval=20, blit=True)
-    anim = animation.FuncAnimation(fig, animate, init_func=init,
+    anim = animation.FuncAnimation(fig, animate, init_func=init, repeat=False,
                                    frames=int(nsteps/dstep), interval=20) #, blit=True)
 
     # anim.save('fjordmodel_plug.avi', fps=30)  #, extra_args=['-vcodec', 'libx264'])
@@ -362,37 +367,28 @@ if 1:
     stop
 
 
-i0, i1 = -6000, -1
-ii = 10
-fig, ax = plt.subplots()
-# box = [[slowzone[0], slowzone[1], slowzone[1], slowzone[0]],
-#        [0, 0, 1000, 1000]]
-# ax.fill(box[0], box[1], 'm', alpha=0.3)
-# ax.eventplot(m.allpos[:100, i0:i1:ii].T, colors='k', lineoffsets=1,
-#                     linewidths=1.5, linelengths=1)
-# ax.set_xlim(0, 11000)
+# plot the results like in the paper
+if 1:
+    idx =  (np.diff(m.allpos, axis=0) > 1.1*m.blength).argmax(axis=0)    # index of open lead
+    xlead = []
+    tcalv = np.array(m.tcalv)
+    for i, ii in enumerate(idx):
+        xlead.append(m.allpos[ii, i])
+    xlead = np.array(xlead)
 
-# plt.plot(m.xfronts[i0:i1], tt[i0:i1]-tt[i0])
-
-
-# m.xblocks = 5 * blength * np.arange(nslots) + np.random.random(m.nslots)*blength 
-# m.spread_blocks()
-
-#m.evolution_uncoupled(nsteps, nblocks)
-
-# plot the results
-tt    = np.arange(nsteps)    # times for all timesteps
-#front = (np.diff(m.allpos,axis=0) > 1.01*m.blength).argmax(axis=0) * m.blength
-
-idx =  (np.diff(m.allpos,axis=0) > 1.01*m.blength).argmax(axis=0) 
-
-lead = []
-for i, ii in enumerate(idx):
-    lead.append(m.allpos[ii, i])
-lead = np.array(lead)
-
-plt.plot( lead - m.xfronts, tt,  'r')
-
+    fig, axs = plt.subplots(1,2)
+    ax = axs[0]
+    nevents = 7
+    ev = 0
+    xx = xlead - m.xfronts
+    for i0, i1 in zip(tcalv[:-1,0], tcalv[1:,0]):
+        i0, i1 = int(i0), int(i1)
+        ax.plot( xx[i0:i1]/1000., tt[i0:i1],  'k', alpha=0.7)
+        ax.plot( [1, 20], [tt[i1]]*2,  '--', color='orange')
+        if ev == nevents:
+            ev = 0
+            ax = axs[1]
+        ev += 1
 stop
 
 for t, xs in zip(tt, m.allpos.T):
