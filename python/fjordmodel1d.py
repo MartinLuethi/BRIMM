@@ -238,8 +238,14 @@ class FjordModel(object):
 
 from matplotlib import animation
 
+nyears   = 4
+dt       = 0.05      # day
+spinup   = 1
+nspinup  = int(spinup*365/dt)
+nstepyr  = int(365/dt)
+nsteps   = int((spinup+nyears)*nstepyr)     # number of time steps
+
 nblocks  = 20        # number of calved blocks
-nsteps   = 20000     # number of time steps
 blength  = 100        # length of floating blocks
 gblength = 30        # length of glacier blocks
 flength  = 20000     # length of the fjord
@@ -251,9 +257,8 @@ slowzone = None #[7000, 8000]
 #plugzones = [[5000, 5500], [7000, 7500]]
 plugzones = [[5000, 5500]]
 plugzones = []
-vfront0   = 10       # velocity of calving front in m/day
+vfront0   = 15       # velocity of calving front in m/day
 
-dt = 0.05      # day
 omega = 2*np.pi / 365.
 
 tt = np.arange(nsteps)*dt    # times for all timesteps
@@ -268,7 +273,7 @@ try:
     m.allpos
 except:
     for bias0 in [0.05]:
-        for dxrand0 in [40]:
+        for dxrand0 in [200]:
             param = dict(nblocks=nblocks, nsteps=nsteps, nslots=nslots,
                          dxcalv=dxcalv, blength=blength,
                          gblength=gblength, flength=flength,
@@ -371,24 +376,25 @@ if 0:
 if 1:
     idx =  (np.diff(m.allpos, axis=0) > 1.1*m.blength).argmax(axis=0)    # index of open lead
     xlead = []
-    tcalv = np.array(m.tcalv)
     for i, ii in enumerate(idx):
         xlead.append(m.allpos[ii, i])
     xlead = np.array(xlead)
-
-    fig, axs = plt.subplots(1,2)
-    ax = axs[0]
-    nevents = 7
-    ev = 0
     xx = xlead - m.xfronts
-    for i0, i1 in zip(tcalv[:-1,0], tcalv[1:,0]):
-        i0, i1 = int(i0), int(i1)
-        ax.plot( xx[i0:i1]/1000., tt[i0:i1],  'k', alpha=0.7)
-        ax.plot( [1, 20], [tt[i1]]*2,  '--', color='orange')
-        if ev == nevents:
-            ev = 0
-            ax = axs[1]
-        ev += 1
+
+    tcalv = np.array([t for t, x in m.tcalv if t >= nspinup])
+
+    fig, axs = plt.subplots(1, nyears)
+    iax = 0
+    for n in range(nyears):
+        ax = axs[n]
+        tn = (n+spinup)*365
+        i0 = (n+spinup)*nstepyr 
+        i1 = i0 + nstepyr
+        idx = (i0 <= tcalv) & (tcalv <= i1)
+        tc  = tcalv[idx]
+        for ii0, ii1 in zip(tc[:-1], tc[1:]):
+            ax.plot( xx[ii0:ii1]/1000., tt[ii0:ii1]-tn,  'k', alpha=0.7)
+            ax.plot( [1, 20], [tt[ii1]-tn]*2,  '--', color='orange')
 stop
 
 for t, xs in zip(tt, m.allpos.T):
