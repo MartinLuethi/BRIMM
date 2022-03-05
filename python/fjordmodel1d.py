@@ -197,8 +197,9 @@ class FjordModel(object):
                 for plug in self.plugs:
                     plug.newpossible = True
 
+            # second calving criterion: calving happens when within the first 5000m a open lead is more than 1.5 block lengths
             idx = (self.xblocks - self.xfront < 5000)
-            if (np.diff(self.xblocks[idx]) > 1.5*self.blength).any():
+            if (np.diff(self.xblocks[idx]) > 2.0*self.blength).any():
                 print('calv lead')
                 self.tcalv.append((step, self.xfront))
                 self.calve_blocks(nblocks)
@@ -266,14 +267,45 @@ tt = np.arange(nsteps)*dt    # times for all timesteps
 outdir = '../modelruns'
 os.makedirs(outdir, exist_ok=True)
 
+def make_result_plot(m, outfilename):
+    """plot the results like in the paper"""
+    idx =  (np.diff(m.allpos, axis=0) > 1.05*m.blength).argmax(axis=0)    # index of open lead
+    xlead = []
+    for i, ii in enumerate(idx):
+        xlead.append(m.allpos[ii, i])
+    xlead = np.array(xlead)
+    xx = xlead - m.xfronts
 
-# for bias in np.arange(0, 0.41, 0.05):
-#     for dxrand in [10, 20, 50, 100]:
-try:
-    m.allpos
-except:
-    for bias0 in [0.05]:
-        for dxrand0 in [200]:
+    tcalv = np.array([t for t, x in m.tcalv if t >= nspinup])
+    
+    plt.ioff()
+    fig, axs = plt.subplots(1, nyears)
+    fig.set_figwidth(16)
+    fig.set_figheight(10)
+    iax = 0
+    for n in range(nyears):
+        ax = axs[n]
+        tn = (n+spinup)*365
+        i0 = (n+spinup)*nstepyr 
+        i1 = i0 + nstepyr
+        idx = (i0 <= tcalv) & (tcalv <= i1)
+        tc  = tcalv[idx]
+        for ii0, ii1 in zip(tc[:-1], tc[1:]):
+            ax.plot( xx[ii0:ii1]/1000., tt[ii0:ii1]-tn,  'k', alpha=0.7)
+            ax.plot( [1, 20], [tt[ii1]-tn]*2,  '--', color='orange')
+    for ax in axs:
+        ax.set_xlim(0, 20)
+        ax.set_ylim(0, 380)
+    for ax in axs[1:]:
+        ax.set_yticklabels([])
+
+    fig.savefig(outfilename)
+    del fig
+
+if 1:
+    for bias0 in [0.02, 0.03, 0.05]:
+        for dxrand0 in [20, 50, 70, 100, 150]:
+            print('---- running --- :', bias0, dxrand0)
             param = dict(nblocks=nblocks, nsteps=nsteps, nslots=nslots,
                          dxcalv=dxcalv, blength=blength,
                          gblength=gblength, flength=flength,
@@ -306,9 +338,51 @@ except:
                 coords= dict(time=tt, slots=np.arange(nslots)), 
                 attrs = param)
 
-            # outfilename = outdir + '/fjordmodel1d_slowzone_{nslots:.0f}_{blength:.0f}_{nblocks:.0f}_{dxcalv:.0f}_{dxrand:.0f}_{bias:.2f}.nc'.format(**param)
+            outfilename = 'fig/fjordmodel1d__{nslots:.0f}_{blength:.0f}_{nblocks:.0f}_{dxcalv:03d}_{dxrand0:03d}_{bias0:.2f}.png'.format(**param)
+            
+            make_result_plot(m, outfilename)
 
+            # outfilename = outdir + '/fjordmodel1d_slowzone_{nslots:.0f}_{blength:.0f}_{nblocks:.0f}_{dxcalv:.0f}_{dxrand:.0f}_{bias:.2f}.nc'.format(**param)
             # ds.to_netcdf(outfilename)
+
+stooop
+
+if 0:
+    """plot the results like in the paper"""
+    idx =  (np.diff(m.allpos, axis=0) > 1.05*m.blength).argmax(axis=0)    # index of open lead
+    xlead = []
+    for i, ii in enumerate(idx):
+        xlead.append(m.allpos[ii, i])
+    xlead = np.array(xlead)
+    xx = xlead - m.xfronts
+
+    tcalv = np.array([t for t, x in m.tcalv if t >= nspinup])
+    
+    plt.ion()
+    fig, axs = plt.subplots(1, nyears)
+    iax = 0
+    for n in range(nyears):
+        ax = axs[n]
+        tn = (n+spinup)*365
+        i0 = (n+spinup)*nstepyr 
+        i1 = i0 + nstepyr
+        idx = (i0 <= tcalv) & (tcalv <= i1)
+        tc  = tcalv[idx]
+        for ii0, ii1 in zip(tc[:-1], tc[1:]):
+            ax.plot( xx[ii0:ii1]/1000., tt[ii0:ii1]-tn,  'k', alpha=0.7)
+            ax.plot( [1, 20], [tt[ii1]-tn]*2,  '--', color='orange')
+    for ax in axs:
+        ax.set_xlim(0, 20)
+        ax.set_ylim(0, 380)
+    for ax in axs[1:]:
+        ax.set_yticklabels([])
+    outfilename = 'fig/test.png'
+    fig.savefig(outfilename)
+
+
+
+
+stoooop
 
 # iceberg animation 
 if 0:
@@ -372,29 +446,7 @@ if 0:
     stop
 
 
-# plot the results like in the paper
-if 1:
-    idx =  (np.diff(m.allpos, axis=0) > 1.1*m.blength).argmax(axis=0)    # index of open lead
-    xlead = []
-    for i, ii in enumerate(idx):
-        xlead.append(m.allpos[ii, i])
-    xlead = np.array(xlead)
-    xx = xlead - m.xfronts
 
-    tcalv = np.array([t for t, x in m.tcalv if t >= nspinup])
-
-    fig, axs = plt.subplots(1, nyears)
-    iax = 0
-    for n in range(nyears):
-        ax = axs[n]
-        tn = (n+spinup)*365
-        i0 = (n+spinup)*nstepyr 
-        i1 = i0 + nstepyr
-        idx = (i0 <= tcalv) & (tcalv <= i1)
-        tc  = tcalv[idx]
-        for ii0, ii1 in zip(tc[:-1], tc[1:]):
-            ax.plot( xx[ii0:ii1]/1000., tt[ii0:ii1]-tn,  'k', alpha=0.7)
-            ax.plot( [1, 20], [tt[ii1]-tn]*2,  '--', color='orange')
 stop
 
 for t, xs in zip(tt, m.allpos.T):
