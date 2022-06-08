@@ -268,15 +268,18 @@ os.makedirs(outdir, exist_ok=True)
 
 def make_result_plot(m, outfilename):
     """plot the results like in the paper"""
-    idx =  (np.diff(m.allpos, axis=0) > 1.05*m.block_length).argmax(axis=0)    # index of open lead
+    # cut off the spinup years
+    allpos = m.allpos[:, nspinup:]
+    xfronts = m.xfronts[nspinup:]
+    tcalv = np.array([t for t, x in m.tcalv if t >= nspinup]) - nspinup
+
+    idx =  (np.diff(allpos, axis=0) > 1.05*m.block_length).argmax(axis=0)    # index of open lead
     xlead = []
     for i, ii in enumerate(idx):
-        xlead.append(m.allpos[ii, i])
+        xlead.append(allpos[ii, i])
     xlead = np.array(xlead)
-    xx = xlead - m.xfronts
+    xx = xlead - xfronts
 
-    tcalv = np.array([t for t, x in m.tcalv if t >= nspinup])
-    
     plt.ioff()
     fig, axs = plt.subplots(1, nyears)
     fig.set_figwidth(16)
@@ -284,8 +287,8 @@ def make_result_plot(m, outfilename):
     iax = 0
     for n in range(nyears):
         ax = axs[n]
-        tn = (n+spinup)*365
-        i0 = (n+spinup)*nstepyr 
+        tn = n * 365
+        i0 = n * nstepyr 
         i1 = i0 + nstepyr
         idx = (i0 <= tcalv) & (tcalv <= i1)
         tc  = tcalv[idx]
@@ -345,7 +348,7 @@ if 1:
                 make_result_plot(m, outfilename)
                 ds.to_netcdf(outfilename.replace('.png','.nc'))
 
-
+                stop
 stoooop
 
 # iceberg animation 

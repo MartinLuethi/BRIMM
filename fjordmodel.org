@@ -41,6 +41,9 @@ is publicly available under the GPL-v3 license.
 
 * brownian motion time scale dependent on particle size
 
+* brownian motion equivalent temperature ??
+
+
 * Rationale
 ** random motion distance
 
