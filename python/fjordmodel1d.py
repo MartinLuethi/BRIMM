@@ -239,22 +239,22 @@ class FjordModel(object):
 
 from matplotlib import animation
 
-nyears   = 2
+nyears   = 4
 dt       = 0.05      # time step, in units of day
-spinup   = 1
+spinup   = 2
 nspinup  = int(spinup*365/dt)
 nstepyr  = int(365/dt)
 nsteps   = int((spinup+nyears)*nstepyr)     # number of time steps
 
-calv_nblocks   = 20        # number of calved blocks
-block_length   = 100       # length of floating blocks
-gblock_length  = 20        # length of glacier blocks
-fjord_length   = 20000     # length of the fjord
-n_blocks       = 200       # maximum number of icebergs that are tracked
-calv_dist      = 20        # distance from terminus of open lead that triggers calving
-block_dxrand0  = 20        # -> set in for loop below
+calv_nblocks   = 20.        # number of calved blocks
+block_length   = 100.       # length of floating blocks
+gblock_length  = 20.        # length of glacier blocks
+fjord_length   = 20000.     # length of the fjord
+n_blocks       = 200        # maximum number of icebergs that are tracked
+calv_dist      = 20.        # distance from terminus of open lead that triggers calving
+block_dxrand0  = 20.        # -> set in for loop below
 block_bias0    = 0.0       # -> set in for loop below
-slowzone = None #[7000, 8000]
+slowzone = 0 #[7000, 8000]
 #plugzones = [[5000, 5500], [7000, 7500]]
 plugzones = []
 glacier_velo   = 15       # velocity of calving front in m/day
@@ -313,8 +313,9 @@ if 1:
                              slowzone=slowzone, plugzones=plugzones,
                              dt=dt, glacier_velo=glacier_velo)
 
-                outfilename = 'fig_modelruns/fjordmodel1d__n_blocks={n_blocks:.0f}_block_length={block_length:.0f}_calv_nblocks={calv_nblocks:.0f}_calv_dist={calv_dist:03d}_dxrand={block_dxrand0:03d}_block_bias0={block_bias0:.2f}.png'.format(**param)
-
+                outfilename = 'fig_modelruns/fjordmodel1d__n_blocks={n_blocks:.0f}_block_length={block_length:.0f}_calv_nblocks={calv_nblocks:.0f}_calv_dist={calv_dist:.0f}_dxrand={block_dxrand0:.0f}_block_bias0={block_bias0:.2f}.png'.format(**param)
+                
+                print(outfilename)
                 bias   = np.zeros(nsteps) + block_bias0 
                 dxrand = np.zeros(nsteps) + block_dxrand0
 
@@ -343,42 +344,6 @@ if 1:
 
                 make_result_plot(m, outfilename)
                 ds.to_netcdf(outfilename.replace('.png','.nc'))
-
-stooop
-
-if 0:
-    """plot the results like in the paper"""
-    idx =  (np.diff(m.allpos, axis=0) > 1.05*m.block_length).argmax(axis=0)    # index of open lead
-    xlead = []
-    for i, ii in enumerate(idx):
-        xlead.append(m.allpos[ii, i])
-    xlead = np.array(xlead)
-    xx = xlead - m.xfronts
-
-    tcalv = np.array([t for t, x in m.tcalv if t >= nspinup])
-    
-    plt.ion()
-    fig, axs = plt.subplots(1, nyears)
-    iax = 0
-    for n in range(nyears):
-        ax = axs[n]
-        tn = (n+spinup)*365
-        i0 = (n+spinup)*nstepyr 
-        i1 = i0 + nstepyr
-        idx = (i0 <= tcalv) & (tcalv <= i1)
-        tc  = tcalv[idx]
-        for ii0, ii1 in zip(tc[:-1], tc[1:]):
-            ax.plot( xx[ii0:ii1]/1000., tt[ii0:ii1]-tn,  'k', alpha=0.7)
-            ax.plot( [1, 20], [tt[ii1]-tn]*2,  '--', color='orange')
-    for ax in axs:
-        ax.set_xlim(0, 20)
-        ax.set_ylim(0, 380)
-    for ax in axs[1:]:
-        ax.set_yticklabels([])
-    outfilename = 'fig/test.png'
-    fig.savefig(outfilename)
-
-
 
 
 stoooop
