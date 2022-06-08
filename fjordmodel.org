@@ -34,6 +34,102 @@ otherwise overlap.
 The BRIMM model was implemented in the Python programming language and
 is publicly available under the GPL-v3 license.
 
+* model results
+
+  outfilename = 'fig_modelruns/fjordmodel1d__{nslots:.0f}_{blength:.0f}_{nblocks:.0f}_{dxcalv:03d}_{dxrand0:03d}_{bias0:.2f}.png'.format(**param)
+
+
+* brownian motion time scale dependent on particle size
+
+* Rationale
+** random motion distance
+
+   - forcing through wind, tidal pumping -> chatic currents
+   - when a block is moving without forcing, it stops by viscous drag in water
+   
+
+** iceberg dynamics
+   distance and time for stopping:
+
+***   absolutely excellent:
+   https://physics.stackexchange.com/questions/72503/how-do-i-calculate-the-distance-a-ship-will-take-to-stop
+
+When stopping the engines, how quickly will a ship lose its speed, and
+how far will it go?
+
+Newton's law tells us the change in the ship's momentum equals the
+drag force:
+
+\( M \frac{dv}{dt} = -F_{drag} \)
+
+Here $M$ is the ship's mass, and $v$ is its speed. For ships with a
+large areal cross section A under the water line and a speed v such
+that \(\sqrt{v^2 A} >> \nu\) with $\nu$ the kinematic viscosity
+(momentum diffusion constant) of the water, the drag force is given
+by:
+
+\( F_{drag}=\frac{1}{2}C_{D} \rho v^2 A \)
+
+Here, $\rho$ is the density of the water, and $C_D$ the drag
+coefficient, a dimensionless constant typically in the range 0.1 -
+0.5, depending on the shape of the ship.
+
+This is all you need. The rest is straightforward math. Substituting
+the equation for the drag force into Newton's law, one readily obtains
+
+\(\frac{dv}{dt} = \frac{-1}{L}v^{2} \)
+\(\frac{dv}{dt} = \frac{-1}{\Lambda}v^{2} \)  better ??
+
+with   (which I would call Halbwertslänge)
+
+\(\frac{1}{\Lambda}= \frac{C_D \rho A}{2 M} \)
+
+
+The solution to this equation is $v=\Lambda/(t+t_{0})$ with $t_{0}$ chosen such
+that the ratio $L/t_{0}$ (?? $\Lambda$??)matches the initial speed of the ship.
+
+Clearly, although the ship will shed its speed rapidly at early times,
+at later times the speed loss slows down considerably. The distance
+travelled is the integral over $v(t)$:
+
+\( x(t)= \Lambda \ln \frac{t+t_0}{t_0}\)
+
+Some specific results:
+
+If it takes a time $t_{0}$ and a distance \( (\ln 2) \Lambda = 0.693 \Lambda \) to
+half the ship's speed, it will take an additional time $2 t_0$ and an
+additional distance $0.693 \Lambda $ to again half the speed. The total time
+to reduce the speed by 90% is $9 t_{0}$. During that time period the ship
+will travel a distance of $2.30 \Lambda$
+
+Estimation of the parameter $\Lambda$ and t0 from velocity vs time data
+is easy: t0 is the time it takes to reduce the initial speed v0 to
+half the value, and L0 is the product v0t0
+
+.
+
+Note that the derived results are valid up to times t
+at which v(t)A−−√>>ν or t+t0<<LA−−√/ν
+
+*** Beispiel für Eisberg
+
+\begin{align}
+\frac{1}{\Lambda} &= \frac{C_D \rho_w A}{2 \rho_i (1.1 A)   L} \\
+\Lambda  &\simeq  \frac{2}{C_D} L
+\end{align}
+
+    C_D = 0.5...1
+    rho_w = 1000
+    A   = 100 * 100   ( oder viel grösser )
+    M   = (1.1*100) * 100 * 200 * 917
+
+    and therefore $\Lambda$ is about the length $L$ of the iceberg
+
+    this also agrees with movies, observations at jako
+
+
+    if we assume that 1 m/s is fast, the iceberg is 100 meters long
+    then t_0 = L/v = 100 sec 
 
 * Rules
 
