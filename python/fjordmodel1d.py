@@ -348,7 +348,6 @@ if 1:
                 make_result_plot(m, outfilename)
                 ds.to_netcdf(outfilename.replace('.png','.nc'))
 
-                stop
 stoooop
 
 # iceberg animation 
