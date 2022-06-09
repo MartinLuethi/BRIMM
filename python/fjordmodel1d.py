@@ -305,7 +305,8 @@ def make_result_plot(m, outfilename):
     del fig
 
 if 1:
-    for block_bias0 in np.arange(0.01, 0.071, 0.01):
+    # for block_bias0 in np.arange(0.01, 0.071, 0.01):
+    for block_bias0 in np.arange(0.08, 0.111, 0.01):
         for block_dxrand0 in np.arange(20, 151, 10):
             for calv_nblocks in range(10, 51, 10):
                 print('---- running --- :', block_bias0, block_dxrand0, calv_nblocks)
