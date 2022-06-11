@@ -71,25 +71,35 @@ that \(\sqrt{v^2 A} >> \nu\) with $\nu$ the kinematic viscosity
 (momentum diffusion constant) of the water, the drag force is given
 by:
 
-\( F_{drag}=\frac{1}{2}C_{D} \rho v^2 A \)
+\( F_{drag}=\frac{1}{2}C_{D} \rho_w v^2 A \)
 
-Here, $\rho$ is the density of the water, and $C_D$ the drag
+
+
+Here, $\rho_w$ is the density of the water, and $C_D$ the drag
 coefficient, a dimensionless constant typically in the range 0.1 -
 0.5, depending on the shape of the ship.
 
 This is all you need. The rest is straightforward math. Substituting
 the equation for the drag force into Newton's law, one readily obtains
 
-\(\frac{dv}{dt} = \frac{-1}{L}v^{2} \)
-\(\frac{dv}{dt} = \frac{-1}{\Lambda}v^{2} \)  better ??
+\(\frac{dv}{dt} = \frac{-1}{\Lambda}v^{2} \)  
 
-with   (which I would call Halbwertslänge)
+with a length scale  $\Lambda$   (which I would call Halbwertslänge)
 
-\(\frac{1}{\Lambda}= \frac{C_D \rho A}{2 M} \)
+\(\frac{1}{\Lambda}= \frac{C_D \rho_w A}{2 M} \)
+
+\(\Lambda= \frac{2 M}{C_D \rho_w A} \)
+
+Für einen Eisberg ist 
+
+\(M= \rho_i A L\) und somit
+
+
+\(\Lambda= \frac{2 L \rho_{i}}{C_D \rho_w }  = 2 \cdot 0.9 L / C_D = 1.8 L / C_D \)
 
 
 The solution to this equation is $v=\Lambda/(t+t_{0})$ with $t_{0}$ chosen such
-that the ratio $L/t_{0}$ (?? $\Lambda$??)matches the initial speed of the ship.
+that the ratio $\Lambda/t_{0}$ matches the initial speed of the ship.
 
 Clearly, although the ship will shed its speed rapidly at early times,
 at later times the speed loss slows down considerably. The distance
@@ -121,18 +131,26 @@ at which v(t)A−−√>>ν or t+t0<<LA−−√/ν
 \Lambda  &\simeq  \frac{2}{C_D} L
 \end{align}
 
+
+the drag coefficient $C_D\sim 0.9$  [[cite:&Lu&al2021_iceberg]] Eik (2009)
+
+
     C_D = 0.5...1
-    rho_w = 1000
+    rho_w = 1028
     A   = 100 * 100   ( oder viel grösser )
     M   = (1.1*100) * 100 * 200 * 917
 
-    and therefore $\Lambda$ is about the length $L$ of the iceberg
+    and therefore $\Lambda$ is about 2.2 times the length $L$ of the iceberg
 
     this also agrees with movies, observations at jako
 
 
     if we assume that 1 m/s is fast, the iceberg is 100 meters long
     then t_0 = L/v = 100 sec 
+
+** F_drag = 1 CD ρLDV^2  
+ 
+
 
 * Rules
 

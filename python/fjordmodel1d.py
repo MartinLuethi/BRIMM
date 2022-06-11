@@ -98,13 +98,13 @@ class FjordModel(object):
                 self.xblocks[i+1] = self.xblocks[i] + self.block_length
 
     def calve_blocks(self, calvblocks):
-        self.xfront -= calvblocks*self.gblock_length                             # move calving front back
+        self.xfront -= calvblocks*self.gblock_length                        # move calving front back
         self.xblocks[calvblocks:] = self.xblocks[:-calvblocks]              # make room for newly calved blocks, discard the outermost ones
         self.xblocks[:calvblocks] = self.xfront + np.arange(calvblocks)*self.block_length      # put the blocks packed
 
     def calve_blocks_stacked(self, calvblocks):
         # TODO: not working properly
-        self.xfront -= calvblocks*self.gblock_length                             # move calving front back
+        self.xfront -= calvblocks*self.gblock_length                        # move calving front back
         self.xblocks[calvblocks:] = self.xblocks[:-calvblocks]              # make room for newly calved blocks, discard the outermost ones
         self.xblocks[:calvblocks] = self.xfront + np.abs(np.random.random(calvblocks)-0.5)*np.arange(calvblocks)*self.block_length      # put the blocks packed
 
@@ -240,8 +240,8 @@ class FjordModel(object):
 from matplotlib import animation
 
 nyears   = 4
-dt       = 0.05      # time step, in units of day
-spinup   = 2
+dt       = 0.02      # time step, in units of day   NEW
+spinup   = 2         # years
 nspinup  = int(spinup*365/dt)
 nstepyr  = int(365/dt)
 nsteps   = int((spinup+nyears)*nstepyr)     # number of time steps
@@ -249,8 +249,8 @@ nsteps   = int((spinup+nyears)*nstepyr)     # number of time steps
 calv_nblocks   = 20.        # number of calved blocks
 block_length   = 100.       # length of floating blocks
 gblock_length  = 20.        # length of glacier blocks
-fjord_length   = 20000.     # length of the fjord
-n_blocks       = 200        # maximum number of icebergs that are tracked
+fjord_length   = 50000.     # length of the fjord
+n_blocks       = 300        # maximum number of icebergs that are tracked
 calv_dist      = 20.        # distance from terminus of open lead that triggers calving
 block_dxrand0  = 20.        # -> set in for loop below
 block_bias0    = 0.0       # -> set in for loop below
@@ -305,10 +305,9 @@ def make_result_plot(m, outfilename):
     del fig
 
 if 1:
-    # for block_bias0 in np.arange(0.01, 0.071, 0.01):
-    for block_bias0 in np.arange(0.08, 0.111, 0.01):
-        for block_dxrand0 in np.arange(20, 151, 10):
-            for calv_nblocks in range(10, 51, 10):
+    for block_bias0 in np.arange(0.01, 0.111, 0.02):
+        for block_dxrand0 in np.arange(20, 161, 20):
+            for calv_nblocks in range(10, 31, 10):
                 print('---- running --- :', block_bias0, block_dxrand0, calv_nblocks)
                 param = dict(calv_nblocks=calv_nblocks, nsteps=nsteps, n_blocks=n_blocks,
                              calv_dist=calv_dist, block_length=block_length,
@@ -317,7 +316,7 @@ if 1:
                              slowzone=slowzone, plugzones=plugzones,
                              dt=dt, glacier_velo=glacier_velo)
 
-                outfilename = 'fig_modelruns/fjordmodel1d__n_blocks={n_blocks:.0f}_block_length={block_length:.0f}_calv_nblocks={calv_nblocks:.0f}_calv_dist={calv_dist:.0f}_dxrand={block_dxrand0:.0f}_block_bias0={block_bias0:.2f}.png'.format(**param)
+                outfilename = 'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks={n_blocks:.0f}__block_length={block_length:.0f}__calv_nblocks={calv_nblocks:.0f}__calv_dist={calv_dist:.0f}__dxrand={block_dxrand0:.0f}__block_bias0={block_bias0:.2f}.png'.format(**param)
                 
                 print(outfilename)
                 bias   = np.zeros(nsteps) + block_bias0 
