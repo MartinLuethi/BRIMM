@@ -306,9 +306,10 @@ def make_result_plot(m, outfilename):
     del fig
 
 if 1:
-    for block_bias0 in np.arange(0.01, 0.111, 0.02):
-        for block_dxrand0 in np.arange(20, 161, 20):
-            for calv_nblocks in range(10, 31, 10):
+    for block_bias0 in np.arange(0.01, 0.101, 0.01):
+        for block_dxrand0 in np.arange(20, 151, 10):
+            # for calv_nblocks in range(10, 31, 10):
+            for calv_nblocks in [20]:
                 print('---- running --- :', block_bias0, block_dxrand0, calv_nblocks)
                 param = dict(calv_nblocks=calv_nblocks, nsteps=nsteps, n_blocks=n_blocks,
                              calv_dist=calv_dist, block_length=block_length,
@@ -317,8 +318,12 @@ if 1:
                              slowzone=slowzone, plugzones=plugzones,
                              dt=dt, glacier_velo=glacier_velo)
 
-                outfilename = 'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks={n_blocks:.0f}__block_length={block_length:.0f}__calv_nblocks={calv_nblocks:.0f}__calv_dist={calv_dist:.0f}__dxrand={block_dxrand0:.0f}__block_bias0={block_bias0:.2f}.png'.format(**param)
+                outfilename = 'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks={n_blocks:.0f}__block_length={block_length:.0f}__calv_nblocks={calv_nblocks:.0f}__calv_dist={calv_dist:.0f}__dxrand={block_dxrand0:.0f}__block_bias0={block_bias0:.2f}.nc'.format(**param)
                 
+                if os.path.exists(outfilename):
+                    print('found')
+                    continue
+
                 print(outfilename)
                 bias   = np.zeros(nsteps) + block_bias0 
                 dxrand = np.zeros(nsteps) + block_dxrand0
@@ -346,8 +351,8 @@ if 1:
                     coords= dict(time=tt, slots=np.arange(n_blocks)), 
                     attrs = param)
 
-                make_result_plot(m, outfilename)
-                ds.to_netcdf(outfilename.replace('.png','.nc'))
+                make_result_plot(m, outfilename.replace('.nc','.png'))
+                ds.to_netcdf(outfilename)
 
 stoooop
 

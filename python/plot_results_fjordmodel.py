@@ -25,8 +25,8 @@ block_length = 100.
 # biass   = np.arange(0.1, 0.111, 0.01)
 # dxrands = np.arange(140, 151, 10)
 biass   = np.arange(0.01, 0.111, 0.01)
-dxrands = np.arange(20, 161, 10)
-calvnbs = [20]
+dxrands = np.arange(10, 161, 10)
+calvnbs = [10]
 
 pparam = dict()
 
@@ -70,6 +70,7 @@ for block_bias0 in biass:
             if 0: 
                 outname   = 'IMW_speed'
                 labeltext = 'IMW propagation speed (m/d)'
+                pparam = dict(cmap=plt.cm.RdYlBu_r, vmin=0, vmax=1.6)
 
                 idx = np.diff(xfront) < -100
                 cidx = np.arange(time.shape[0]-1)[idx]
@@ -108,8 +109,8 @@ for block_bias0 in biass:
                 labeltext = 'Average position of calving front (m)'
                 res.append(xfront.mean())
 
-            # average calving front speed 
-            if 1:
+            # average advance rate of calving front
+            if 0:
                 outname   = 'front_rate'
                 labeltext = 'Average advance rate of calving front (m/d)'
                 pparam = dict(cmap=plt.cm.RdBu, vmin=-20, vmax=20)
@@ -127,9 +128,28 @@ for block_bias0 in biass:
                 labeltext = 'Minimum position of calving front (m)'
                 res.append(xfront.min())
 
+            # average propagation duration of the IMWE
+            if 1:
+                outname   = 'prop_dur'
+                labeltext = 'Average propagation duration (d)'
+                pparam = dict(cmap=plt.cm.RdBu, vmin=0, vmax=100)
+                idx  = np.diff(xfront) < -100
+                cidx = np.arange(time.shape[0]-1)[idx]
+                res.append(np.mean(np.diff(time[cidx])))
+
+                # dd = []
+                # for i0, i1 in zip(cidx[:-1], cidx[1:]):
+                #     t0, t1 = time[i0+1], time[i1]
+                #     dd.append((t0-t1))
+                # res.append(np.mean(dd))
+                # stop
+
             # average propagation distance of the IMWE
             if 0:
-                idx = np.diff(xfront) < -100
+                outname   = 'prop_dist'
+                labeltext = 'Average propagation distance (m)'
+                pparam = dict(cmap=plt.cm.RdBu, vmin=5000, vmax=20000)
+                idx  = np.diff(xfront) < -100
                 cidx = np.arange(time.shape[0]-1)[idx]
 
                 # plt.plot(time, front)
