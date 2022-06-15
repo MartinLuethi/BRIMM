@@ -7,7 +7,10 @@
 import numpy as np
 import pylab as plt
 import xarray
+from scipy.stats import linregress
+
 import glob
+
 
 filenames = sorted(glob.glob('fig_modelruns/*.nc')) 
 
@@ -24,6 +27,8 @@ block_length = 100.
 biass   = np.arange(0.01, 0.111, 0.01)
 dxrands = np.arange(20, 161, 10)
 calvnbs = [20]
+
+pparam = dict()
 
 allres = []
 for block_bias0 in biass:
@@ -62,8 +67,9 @@ for block_bias0 in biass:
                 res.append(tcalvmean)
 
             # average propagation speed of the IMWE
-            if 1: 
-                from scipy.stats import linregress
+            if 0: 
+                outname   = 'IMW_speed'
+                labeltext = 'IMW propagation speed (m/d)'
 
                 idx = np.diff(xfront) < -100
                 cidx = np.arange(time.shape[0]-1)[idx]
@@ -72,32 +78,54 @@ for block_bias0 in biass:
                 for i0, i1 in zip(cidx[:-1], cidx[1:]):
                     tt, xx = time[i0+1:i1], front[i0+1:i1]
                     regr = linregress(tt, xx)
+                    t0, t1 = time[i0+1], time[i1]
+                    x0, x1 = front[i0+1], front[i1]
+                    vs.append( -regr.slope )
+                    # vs.append( - (x1-x0)/(t1-t0) )
+
+                    # plt.plot([t0,t1], [x0,x1], 'k')
                     # plt.plot(tt, xx, 'k', alpha=0.5)
                     # plt.plot(tt, xx[-1] + (tt-tt[-1])*regr.slope, 'r')
 
-                    t0, t1 = time[i0+1], time[i1]
-                    x0, x1 = front[i0+1], front[i1]
-                    # plt.plot([t0,t1], [x0,x1], 'k')
-                    vs.append( -regr.slope )
-                    # vs.append( - (x1-x0)/(t1-t0) )
-                res.append(np.mean(vs))
+                res.append(np.mean(vs)/1000.)   # in km/day
 
                 # plt.show(block=True)
 
-
             # testing the plot -> OK
             if 0: 
+                labeltext = 'bias * dxrand'
                 res.append(block_bias0 * block_dxrand0)
                 continue
 
-            # average number of blocks < 20 km (fjordlength)
+            # mean position of blocks < 50 km (fjordlength)
             if 0:
-                nbl = allpos[allpos < 20000].mean()
+                labeltext = 'mean position of blocks in fjord'
+                nbl = allpos[allpos < 50000].mean()
                 res.append(nbl)
 
-            # average calving front position (20 km fjordlength)
+            # average calving front position 
             if 0:
+                labeltext = 'Average position of calving front (m)'
                 res.append(xfront.mean())
+
+            # average calving front speed 
+            if 1:
+                outname   = 'front_rate'
+                labeltext = 'Average advance rate of calving front (m/d)'
+                pparam = dict(cmap=plt.cm.RdBu, vmin=-20, vmax=20)
+                try:
+                    regr = linregress(time, xfront)
+                    r = regr.slope
+                except:
+                    r = np.nan
+
+                res.append(r)
+
+            # minimum calving front position (20 km fjordlength)
+            if 0:
+                outname   = 'min_front_pos'
+                labeltext = 'Minimum position of calving front (m)'
+                res.append(xfront.min())
 
             # average propagation distance of the IMWE
             if 0:
@@ -131,12 +159,12 @@ allres = np.array(allres)
 
 fig, ax = plt.subplots()
 
-pcm = ax.pcolormesh(dxrands, biass, allres)
+pcm = ax.pcolormesh(dxrands, biass, allres, **pparam)
 ax.set_xlabel('dxrand (m)')
 ax.set_ylabel('bias')
 #plt.colorbar(pcm, label='days')
-plt.colorbar(pcm, label='velo')
+plt.colorbar(pcm, label=labeltext)
 fig.tight_layout()
 
 cnb = int(calvnbs[0])
-#fig.savefig(f'fig/calving_frontpos_avg__nblocks={cnb}.png', dpi=200)
+fig.savefig(f'fig/{outname:s}__nblocks={cnb}.png', dpi=200)
