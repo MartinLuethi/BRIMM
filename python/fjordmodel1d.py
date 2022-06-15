@@ -188,7 +188,7 @@ class FjordModel(object):
                 elif (dx < 0) and (i == 0):
                     self.xblocks[i] += -min(self.xblocks[i]-self.xfront, -dx)
 
-            # calving criterion: block at calving front moves more than calv_dist away from calving front
+            # first calving criterion: block at calving front moves more than calv_dist away from calving front
             if self.xblocks[0] > self.xfront + self.calv_dist:
                 print('calv front')
                 self.tcalv.append((step, self.xfront))
@@ -198,7 +198,7 @@ class FjordModel(object):
                     plug.newpossible = True
 
             # second calving criterion: calving happens when within the first 5000m a open lead is more than 1.5 block lengths
-            idx = (self.xblocks - self.xfront < 5000)
+            idx = (self.xblocks - self.xfront < calv_far_dist)
             if (np.diff(self.xblocks[idx]) > 2.0*self.block_length).any():
                 print('calv lead')
                 self.tcalv.append((step, self.xfront))
@@ -252,8 +252,9 @@ gblock_length  = 20.        # length of glacier blocks
 fjord_length   = 50000.     # length of the fjord
 n_blocks       = 300        # maximum number of icebergs that are tracked
 calv_dist      = 20.        # distance from terminus of open lead that triggers calving
+calv_far_dist  = 5000.      # distance from terminus of very wide open lead that triggers calving
 block_dxrand0  = 20.        # -> set in for loop below
-block_bias0    = 0.0       # -> set in for loop below
+block_bias0    = 0.0        # -> set in for loop below
 slowzone = 0 #[7000, 8000]
 #plugzones = [[5000, 5500], [7000, 7500]]
 plugzones = []
