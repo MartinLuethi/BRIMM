@@ -24,9 +24,9 @@ block_length = 100.
 
 # biass   = np.arange(0.1, 0.111, 0.01)
 # dxrands = np.arange(140, 151, 10)
-biass   = np.arange(0.01, 0.111, 0.01)
-dxrands = np.arange(10, 161, 10)
-calvnbs = [10]
+biass   = np.arange(0.01, 0.101, 0.01)
+dxrands = np.arange(20, 151, 10)
+calvnbs = [20]
 
 pparam = dict()
 
@@ -69,8 +69,9 @@ for block_bias0 in biass:
             # average propagation speed of the IMWE
             if 0: 
                 outname   = 'IMW_speed'
-                labeltext = 'IMW propagation speed (m/d)'
+                labeltext = 'IMW propagation speed (km/d)'
                 pparam = dict(cmap=plt.cm.RdYlBu_r, vmin=0, vmax=1.6)
+                lmin, lmax = 0.3, 0.8
 
                 idx = np.diff(xfront) < -100
                 cidx = np.arange(time.shape[0]-1)[idx]
@@ -114,6 +115,7 @@ for block_bias0 in biass:
                 outname   = 'front_rate'
                 labeltext = 'Average advance rate of calving front (m/d)'
                 pparam = dict(cmap=plt.cm.RdBu, vmin=-20, vmax=20)
+                lmin, lmax = -7, 7
                 try:
                     regr = linregress(time, xfront)
                     r = regr.slope
@@ -129,10 +131,11 @@ for block_bias0 in biass:
                 res.append(xfront.min())
 
             # average propagation duration of the IMWE
-            if 1:
+            if 0:
                 outname   = 'prop_dur'
                 labeltext = 'Average propagation duration (d)'
-                pparam = dict(cmap=plt.cm.RdBu, vmin=0, vmax=100)
+                pparam = dict(cmap=plt.cm.RdBu_r, vmin=0, vmax=100)
+                lmin, lmax = 10, 30
                 idx  = np.diff(xfront) < -100
                 cidx = np.arange(time.shape[0]-1)[idx]
                 res.append(np.mean(np.diff(time[cidx])))
@@ -147,8 +150,10 @@ for block_bias0 in biass:
             # average propagation distance of the IMWE
             if 0:
                 outname   = 'prop_dist'
-                labeltext = 'Average propagation distance (m)'
-                pparam = dict(cmap=plt.cm.RdBu, vmin=5000, vmax=20000)
+                labeltext = 'Average propagation distance (km)'
+                pparam = dict(cmap=plt.cm.RdBu, vmin=5, vmax=20)
+                lmin, lmax = 12, 15
+
                 idx  = np.diff(xfront) < -100
                 cidx = np.arange(time.shape[0]-1)[idx]
 
@@ -160,7 +165,7 @@ for block_bias0 in biass:
                     x0, x1 = front[i0+1], front[i1]
                     # plt.plot([t0,t1], [x0,x1], 'k')
                     dd.append((x0-x1))
-                res.append(np.mean(dd))
+                res.append(np.mean(dd)/1000.)
 
                 # plt.show(block=True)
 
@@ -177,13 +182,32 @@ for block_bias0 in biass:
 
 allres = np.array(allres)
 
-fig, ax = plt.subplots()
 
-pcm = ax.pcolormesh(dxrands, biass, allres, **pparam)
+def normalize_img(img, val):
+    im = (np.clip(img, val, val+1) - val )
+    im[im > 0] = 1
+    return im
+
+fig, ax = plt.subplots()
+pcm = ax.pcolormesh(dxrands, biass, allres, **pparam, )
+
+im = normalize_img(allres, lmin)
+cs1 = ax.contour(dxrands, biass, im, levels=[0.5], colors='red', linewidths=3)
+im = normalize_img(allres, lmax)
+cs2 = ax.contour(dxrands, biass, im, levels=[0.5], colors='red', linewidths=3)
+cs  = ax.contour(dxrands, biass, allres, levels = [lmin, lmax], colors='red', linewidths=3, alpha=0)
+
+cbar = fig.colorbar(pcm, label=labeltext)
+cs.set_alpha(1)
+cbar.add_lines(cs)
+
+# cs2 = clipcontour(allres, lmax)
+
 ax.set_xlabel('dxrand (m)')
 ax.set_ylabel('bias')
+ax.set_xlim(15,155)
 #plt.colorbar(pcm, label='days')
-plt.colorbar(pcm, label=labeltext)
+
 fig.tight_layout()
 
 cnb = int(calvnbs[0])
