@@ -75,7 +75,6 @@ for i, filename in enumerate(filenames):
     if i == 0:
         ax.set_ylabel('Time (days)', fontsize=35)
 
-    # ax.set_title('bias={block_bias0}'.format(**param), fontsize=35)
     ax.set_title('bias={block_bias0} dxrand={dxrand}'.format(**param), fontsize=20)
         
 plt.suptitle("Distance from reference (km)", fontsize=35, y=0.08, x=0.507)
