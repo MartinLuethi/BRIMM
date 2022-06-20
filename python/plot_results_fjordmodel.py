@@ -189,13 +189,14 @@ def normalize_img(img, val):
     return im
 
 fig, ax = plt.subplots()
-pcm = ax.pcolormesh(dxrands, biass, allres, **pparam, )
+    # fix the fact that dxrand is used by p \element [-0.5, 0.5]
 
+pcm = ax.pcolormesh(dxrands/2, biass, allres, **pparam, )
 im = normalize_img(allres, lmin)
-cs1 = ax.contour(dxrands, biass, im, levels=[0.5], colors='red', linewidths=3)
+cs1 = ax.contour(dxrands/2, biass, im, levels=[0.5], colors='red', linewidths=3)
 im = normalize_img(allres, lmax)
-cs2 = ax.contour(dxrands, biass, im, levels=[0.5], colors='red', linewidths=3)
-cs  = ax.contour(dxrands, biass, allres, levels = [lmin, lmax], colors='red', linewidths=3, alpha=0)
+cs2 = ax.contour(dxrands/2, biass, im, levels=[0.5], colors='red', linewidths=3)
+cs  = ax.contour(dxrands/2, biass, allres, levels = [lmin, lmax], colors='red', linewidths=3, alpha=0)
 
 cbar = fig.colorbar(pcm, label=labeltext)
 cs.set_alpha(1)
@@ -205,7 +206,7 @@ cbar.add_lines(cs)
 
 ax.set_xlabel('dxrand (m)')
 ax.set_ylabel('bias')
-ax.set_xlim(15,155)
+ax.set_xlim(15,75)
 #plt.colorbar(pcm, label='days')
 
 fig.tight_layout()

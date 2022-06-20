@@ -7,33 +7,39 @@ import pylab as plt
 import xarray
 from scipy.stats import linregress
 
-# change bias
-filenames = [
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.01.nc',
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.02.nc',
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.03.nc',
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.04.nc',
-    ]
+if 1:
+    # change bias
+    outfilename = 'fig/fjordmodel1d__bias.pdf'
+    filenames = [
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.01.nc',
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.02.nc',
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.03.nc',
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.04.nc',
+        ]
 
-# change dxrand
-filenames = [
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=50__block_bias0=0.02.nc',
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=70__block_bias0=0.02.nc',
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.02.nc',
-    'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=130__block_bias0=0.02.nc',
-    ]
+if 0:
+    # change dxrand
+    outfilename = 'fig/fjordmodel1d__dxrand.pdf'
+    filenames = [
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=40__block_bias0=0.02.nc',
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=60__block_bias0=0.02.nc',
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=100__block_bias0=0.02.nc',
+        'fig_modelruns/fjordmodel1d__fjord_length=50__n_blocks=300__block_length=100__calv_nblocks=20__calv_dist=20__dxrand=140__block_bias0=0.02.nc',
+        ]
 
-plt.tick_params(labelsize=26)
+# plt.tick_params(labelsize=26)
 # fig = plt.figure(figsize=(38, 21), dpi=50)
 # axs = fig.subplots(1, 4, sharey=True)
 
-fig = plt.figure(figsize=(38, 21), dpi=50)
+fig, axs = plt.subplots(1, 4, sharey=True )
+fig.set_size_inches(38, 21)
 
 for i, filename in enumerate(filenames):
     param = dict(v.split('=') for v in filename[:-3].split('__')[1:])
+    # fix the fact that dxrand is used by p \element [-0.5, 0.5]
+    param['dxrand'] = '{:.0f}'.format( int(param['dxrand'])/2 )
 
-    # ax = axs[i]
-    ax = plt.subplot(1, 4, i + 1)
+    ax = axs[i]
 
     ds = xarray.open_dataset(filename)
 
@@ -75,9 +81,34 @@ for i, filename in enumerate(filenames):
     if i == 0:
         ax.set_ylabel('Time (days)', fontsize=35)
 
-    ax.set_title('bias={block_bias0} dxrand={dxrand}'.format(**param), fontsize=20)
+    ax.set_title('$p_b$={block_bias0} $\Delta x$={dxrand}'.format(**param), fontsize=26)
         
 plt.suptitle("Distance from reference (km)", fontsize=35, y=0.08, x=0.507)
 
 #plt.tight_layout()
-plt.savefig(f'fig/all.pdf', dpi=200)
+plt.savefig(outfilename, dpi=200)
+
+
+
+
+# # crop pdf file
+# from PyPDF2 import PdfFileWriter, PdfFileReader
+# pdf_file = PdfFileReader(open(outfilename, "rb"))
+# page = pdf_file.getPage(0)
+# lr_corner = list(page.cropBox.getLowerRight())
+# ul_corner = list(page.cropBox.getUpperLeft())
+
+# ul_corner[0] = 220
+# lr_corner[1] = 100
+# lr_corner[0] -= 220
+# output = PdfFileWriter()
+
+# page = pdf_file.getPage(0)
+# page.cropBox.upperLeft = tuple(ul_corner)
+# page.cropBox.lowerRight = tuple(lr_corner)
+# output.addPage(page)
+
+# outputStream = open(outfilename, "wb")
+# output.write(outputStream)
+# outputStream.close()
+
